@@ -3,6 +3,48 @@ chrome.tabs.query({ active: true, currentWindow: true }, init);
 function init(tabs) {
 	var currentTab = tabs[0];
 	var currentSwitchBtn;
+	var currentUrl = currentTab.url;
+	var currentDomain = "";
+
+	// Extract domain from URL
+	try {
+		var url = new URL(currentUrl);
+		currentDomain = url.hostname;
+		document.getElementById("currentDomain").textContent = currentDomain;
+	} catch (e) {
+		// Hide disable options if URL is invalid (e.g., chrome:// pages)
+		document.getElementById("disableOptions").style.display = "none";
+	}
+
+	// Setup disable options
+	document.getElementById("disablePage").addEventListener("click", function () {
+		chrome.runtime.sendMessage(
+			{ action: "addExclusion", url: currentUrl },
+			function (response) {
+				if (response && response.success) {
+					showReloadMessage();
+				}
+			},
+		);
+	});
+
+	document
+		.getElementById("disableDomain")
+		.addEventListener("click", function () {
+			chrome.runtime.sendMessage(
+				{ action: "addExclusion", url: currentDomain },
+				function (response) {
+					if (response && response.success) {
+						showReloadMessage();
+					}
+				},
+			);
+		});
+
+	function showReloadMessage() {
+		document.getElementById("disableOptions").style.display = "none";
+		document.getElementById("reloadMessage").style.display = "block";
+	}
 
 	// Get constants from background script
 	chrome.runtime.sendMessage({ action: "getConstants" }, function (response) {

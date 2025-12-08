@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Instant Smart Quotes - Options</title>
+	<title>Smart Typography - Options</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -72,10 +72,69 @@
 		button:hover {
 			background-color: #0056b3;
 		}
+		.exclusion-list {
+			margin-top: 10px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		.exclusion-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 8px 12px;
+			border-bottom: 1px solid #eee;
+		}
+		.exclusion-item:last-child {
+			border-bottom: none;
+		}
+		.exclusion-item:hover {
+			background-color: #f5f5f5;
+		}
+		.exclusion-url {
+			flex: 1;
+			word-break: break-all;
+			font-size: 13px;
+		}
+		.remove-btn {
+			background-color: #dc3545;
+			color: white;
+			border: none;
+			padding: 4px 12px;
+			font-size: 12px;
+			border-radius: 3px;
+			cursor: pointer;
+			margin-left: 10px;
+		}
+		.remove-btn:hover {
+			background-color: #c82333;
+		}
+		.add-exclusion {
+			display: flex;
+			gap: 8px;
+			margin-top: 10px;
+		}
+		.add-exclusion input {
+			flex: 1;
+			padding: 8px;
+			font-size: 14px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+		}
+		.add-exclusion button {
+			padding: 8px 16px;
+		}
+		.empty-state {
+			padding: 20px;
+			text-align: center;
+			color: #999;
+			font-size: 13px;
+		}
 	</style>
 </head>
 <body>
-	<h1>Instant Smart Quotes Options</h1>
+	<h1>Smart Typography Options</h1>
 
 	<div class="option-group">
 		<label for="defaultLanguage">Default Language</label>
@@ -83,7 +142,7 @@
 			<option value="">Auto-detect from browser</option>
 		</select>
 		<div class="description">
-			Choose the default language for quote styles. If set to "Auto-detect", the extension will use your browser's language setting.
+			Choose the default language for quote styles. If set to “Auto-detect”, the extension will use your browser&rsquo;s language setting.
 		</div>
 	</div>
 
@@ -95,17 +154,31 @@
 			<option value="none">Keep hyphen (-) - text - more text</option>
 		</select>
 		<div class="description">
-			Choose which dash to use when converting spaced hyphens (e.g., "text - more" becomes "text — more" with em dash).
+			Choose which dash to use when converting spaced hyphens (e.g., “text - more” becomes “text — more” with em dash).
 		</div>
 	</div>
 
 	<div class="option-group">
 		<div class="checkbox-group">
 			<input type="checkbox" id="enableContextMenu" checked>
-			<label for="enableContextMenu">Enable right-click "Format Typography" menu</label>
+			<label for="enableContextMenu">Enable right-click “Format Typography” menu</label>
 		</div>
 		<div class="description">
 			When enabled, you can right-click in text fields to manually format existing text with all typography rules.
+		</div>
+	</div>
+
+	<div class="option-group">
+		<label>Excluded Sites</label>
+		<div class="description">
+			Add domains or URLs where Smart Typography should not run. Examples: “example.com”, “https://site.com/page”
+		</div>
+		<div class="add-exclusion">
+			<input type="text" id="exclusionInput" placeholder="Enter domain or URL (e.g., example.com)">
+			<button id="addExclusion" type="button">Add</button>
+		</div>
+		<div id="exclusionList" class="exclusion-list">
+			<div class="empty-state">No excluded sites</div>
 		</div>
 	</div>
 

@@ -50,6 +50,24 @@ li.selected, li.selected:hover {
     font-weight: bold;
 }
 
+.disable-link {
+    display: inline-block;
+    padding: .1rem .2rem;
+    font-size: .85rem;
+    color: #666;
+    cursor: pointer;
+    border-radius: .3rem;
+}
+
+.disable-link:hover {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+#disableOptions {
+    padding: .2rem .3rem;
+}
+
 @media (prefers-color-scheme: dark) {
     html, body {
         background-color: #42414C;
@@ -63,6 +81,20 @@ li.selected, li.selected:hover {
     #switch:hover,
     li:hover {
         background-color: #53525C;
+    }
+
+    .disable-link {
+        color: #aaa;
+    }
+
+    .disable-link:hover {
+        background-color: #53525C;
+        color: #fff;
+    }
+
+    #reloadMessage {
+        background-color: #4a4a3a !important;
+        color: #ffd700 !important;
     }
 }
 

@@ -420,10 +420,11 @@ var pageSettings;
 var currentPageSetting;
 var fallbackLang;
 var sentenceBreakDash = "em"; // Default to em dash
+var excludedSites = []; // List of excluded domains/URLs
 
-// Initialize default language and sentence break dash preference from storage
+// Initialize default language, sentence break dash preference, and excluded sites from storage
 chrome.storage.sync.get(
-	["defaultLanguage", "sentenceBreakDash"],
+	["defaultLanguage", "sentenceBreakDash", "excludedSites"],
 	function (data) {
 		if (data.defaultLanguage) {
 			fallbackLang = populateLangByCode(data.defaultLanguage);
@@ -434,8 +435,43 @@ chrome.storage.sync.get(
 		if (data.sentenceBreakDash) {
 			sentenceBreakDash = data.sentenceBreakDash;
 		}
+
+		if (data.excludedSites) {
+			excludedSites = data.excludedSites;
+		}
 	},
 );
+
+// Check if a URL is excluded
+function isUrlExcluded(url) {
+	if (!url || excludedSites.length === 0) {
+		return false;
+	}
+
+	try {
+		var urlObj = new URL(url);
+		var hostname = urlObj.hostname.toLowerCase();
+		var fullUrl = url.toLowerCase();
+
+		for (var i = 0; i < excludedSites.length; i++) {
+			var excluded = excludedSites[i].toLowerCase();
+
+			// Check if it matches the full URL
+			if (fullUrl.indexOf(excluded) !== -1) {
+				return true;
+			}
+
+			// Check if it matches the hostname or is a subdomain
+			if (hostname === excluded || hostname.endsWith("." + excluded)) {
+				return true;
+			}
+		}
+	} catch (e) {
+		// Invalid URL, skip
+	}
+
+	return false;
+}
 
 chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	// Handle popup requests
@@ -483,6 +519,27 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 		return true;
 	}
 
+	// Handle excluded sites update
+	if (req.action === "updateExcludedSites") {
+		excludedSites = req.excludedSites || [];
+		cb({});
+		return true;
+	}
+
+	// Handle adding an exclusion from popup
+	if (req.action === "addExclusion") {
+		var urlToExclude = req.url;
+		if (urlToExclude && excludedSites.indexOf(urlToExclude) === -1) {
+			excludedSites.push(urlToExclude);
+			chrome.storage.sync.set({ excludedSites: excludedSites }, function () {
+				cb({ success: true });
+			});
+		} else {
+			cb({ success: false });
+		}
+		return true;
+	}
+
 	// Handle content script initialization requests
 	chrome.storage.sync.get(STORAGE_KEY, function (storage) {
 		var pageSettingsFromStorage = storage[STORAGE_KEY];
@@ -490,20 +547,23 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 		// Ensure fallbackLang is initialized
 		var defaultLang = fallbackLang || populateLangByCode("en");
 
+		// Check if the current URL is excluded
+		var isExcluded = isUrlExcluded(sender.tab.url);
+
 		if (!pageSettingsFromStorage) {
 			cb({
 				location: location,
 				lang: defaultLang,
-				enabled: true,
+				enabled: !isExcluded,
 				sentenceBreakDash: sentenceBreakDash,
 			});
 			pageSettings = [];
 			currentPageSetting = {
-				enabled: true,
+				enabled: !isExcluded,
 				location: sender.tab.url,
 				lang: defaultLang,
 			};
-			setBadge(BADGE.ON, sender.tab.id);
+			setBadge(isExcluded ? BADGE.OFF : BADGE.ON, sender.tab.id);
 		} else {
 			pageSettingsFromStorage.filter(function (pageSetting) {
 				return (pageSetting.lang = populateLangByCode(pageSetting.lang));
@@ -511,6 +571,12 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 
 			pageSettings = pageSettingsFromStorage;
 			currentPageSetting = getPageFromSettings(sender.tab.url);
+
+			// Override enabled state if URL is excluded
+			if (isExcluded) {
+				currentPageSetting.enabled = false;
+			}
+
 			cb({ ...currentPageSetting, sentenceBreakDash: sentenceBreakDash });
 			setBadge(
 				currentPageSetting.enabled ? BADGE.ON : BADGE.OFF,

@@ -21,7 +21,8 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Space Normalization**: Multiple spaces reduced to single space, unless those at the beginning of a line. Trailing whitespaces at line ends are trimmed.
 - **Ellipses** (…) from three dots
 - **Quick Controls**: Enable/disable and change language from toolbar
-- **Options Page**: Configure default language, sentence break dash style, and enable/disable right-click menu (right-click extension icon → Options)
+- **Site Exclusions**: Disable the extension on specific pages or entire domains via popup or options page
+- **Options Page**: Configure default language, sentence break dash style, excluded sites, and enable/disable right-click menu (right-click extension icon → Options)
 - **Right-Click Menu** (optional): Format existing text in fields via context menu
 - **Per-Site Settings**: All settings saved per page and synced across devices
 - **Code-Aware**: Text in `backticks` and ```code blocks``` ignored

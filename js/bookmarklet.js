@@ -23,13 +23,94 @@ var enabled;
 var lang;
 var sentenceBreakDash = "em"; // Default to em dash
 
-var isTextField = function (elem) {
-	return !!(
-		elem.tagName.toUpperCase() === "TEXTAREA" ||
-		elem.isContentEditable ||
-		(elem.tagName.toUpperCase() === "INPUT" &&
-			elem.type.toUpperCase() === "TEXT")
+// Character codes for performance optimization (avoid string comparisons)
+var SPACE_CHAR_CODE = 32; // space
+var TAB_CHAR_CODE = 9; // \t
+var NEWLINE_CHAR_CODE = 10; // \n
+var CARRIAGE_RETURN_CHAR_CODE = 13; // \r
+
+// Optimized whitespace checking function
+var isWhitespace = function (charCode) {
+	return (
+		charCode === SPACE_CHAR_CODE ||
+		charCode === TAB_CHAR_CODE ||
+		charCode === NEWLINE_CHAR_CODE ||
+		charCode === CARRIAGE_RETURN_CHAR_CODE
 	);
+};
+
+var splitterRegex =
+	/(?:```[\S\s]*?(?:```|$))|(?:`[\S\s]*?(?:`|$))|(?:\{code(?:\:.*?)?\}[\S\s]*?(?:\{code\}|$))|(?:\{noformat\}[\S\s]*?(?:\{noformat\}|$))/gi;
+
+// Combined symbol replacement map for better performance
+var symbolReplacements = {
+	"(c)": "©",
+	"(tm)": "™",
+	"(r)": "®",
+};
+
+const chemicalFormulas = {
+	co2: "CO₂",
+	h2o: "H₂O",
+};
+
+const symbolReplacementsRegex = /\((c|tm|r)\)/gi;
+const chemicalFormulasRegex = /\b(co2|h2o)\b/gi;
+
+// Optimized symbol replacement function
+var applySymbolReplacements = function (text) {
+	return text
+		.replace(symbolReplacementsRegex, function (match) {
+			return symbolReplacements[match.toLowerCase()] || match;
+		})
+		.replace(chemicalFormulasRegex, function (match) {
+			return chemicalFormulas[match.toLowerCase()] || match;
+		});
+};
+
+var trailingSpacesRegex = /[ \t]+$/gm;
+var multipleSpacesCursorRegex = /(\S)([ \t]{2,})/g;
+var multipleSpacesRegex = /(\S)[ \t]{2,}/g;
+var sentenceBreakDashRegex = /(\w) - (\w)/g;
+var threeHyphensRegex = /(\w)-{3}(\w)/g;
+var twoHyphensRegex = /(\w)-{2}(\w)/g;
+var enDashHyphenRegex = /(\w)–-(\w)/g;
+var numberRangeRegex = /(\d+)\s*-\s*(\d+)/g;
+var dateRangeRegex = /(\b[A-Z][a-z]{2,})\s*-\s*(\b[A-Z][a-z]{2,})/g;
+var ellipsisMiddleRegex = /([^.…])\.{3}([^.…])/g;
+var ellipsisStartRegex = /^\.\.\./g;
+var ellipsisEndRegex = /\.\.\.$/g;
+var contractionsRegex =
+	/\b(don|won|can|couldn|wouldn|shouldn|didn|isn|aren|wasn|weren|hasn|haven|hadn)'t\b/gi;
+var iContractionsRegex =
+	/\b(I|you|we|they|he|she|it|who|what|there|here)'(ll|ve|re|d|m|s)\b/gi;
+// Combined apostrophe shortening patterns
+const apostropheShorteningsRegex = /\b'(em|twas|cause|n|[0-9]{2}s?)\b/gi;
+const rocknrollRegex = /\b(rock|pop)'n'(roll)\b/gi;
+
+// Optimized apostrophe shortening replacement function
+var applyApostropheShortenings = function (text) {
+	return text
+		.replace(apostropheShorteningsRegex, "'$1")
+		.replace(rocknrollRegex, "$1'n'$2");
+};
+var possessiveRegex = /([a-z])s'/gi;
+var doubleCommaRegex = /,,/g;
+var measurementFeetInchesRegex = /(\d+)\s*'\s*(\d+)\s*"/g;
+var feetSymbolRegex = /(\d+)\s*'/g;
+var inchSymbolRegex = /(\d+)\s*"/g;
+
+var isTextField = function (elem) {
+	if (elem.isContentEditable) return true;
+
+	var tagName = elem.tagName;
+	if (tagName === "TEXTAREA") return true;
+
+	if (tagName === "INPUT") {
+		return elem.type === "text" || elem.type === "TEXT";
+	}
+
+	return false;
 };
 
 var charsTillEndOfStr = function (activeElement) {
@@ -43,50 +124,73 @@ var correctCaretPosition = function (activeElement, charsTillEndOfStr) {
 };
 
 var processTextField = function (activeElement) {
-	var charsTillEnfOfStrBeforeRegex = charsTillEndOfStr(activeElement);
-	var cursorPos = getSelectionStart(activeElement);
+	// Cache DOM values to reduce repeated queries
 	var textValue = getValue(activeElement);
-	setValue(
-		activeElement,
-		replaceTypewriterPunctuation(textValue, false, cursorPos),
-	);
-	correctCaretPosition(activeElement, charsTillEnfOfStrBeforeRegex);
-	return getValue(activeElement);
+	var cursorPos = getSelectionStart(activeElement);
+	var charsTillEnd = textValue.length - cursorPos;
+
+	var newValue = replaceTypewriterPunctuation(textValue, false, cursorPos);
+
+	setValue(activeElement, newValue);
+	correctCaretPosition(activeElement, charsTillEnd);
+
+	return newValue;
 };
 
-var replaceTypewriterPunctuation = function (g, trimTrailingSpaces, cursorPos) {
-	var splitterRegex =
-		/(?:```[\S\s]*?(?:```|$))|(?:`[\S\s]*?(?:`|$))|(?:\{code(?:\:.*?)?\}[\S\s]*?(?:\{code\}|$))|(?:\{noformat\}[\S\s]*?(?:\{noformat\}|$))/gi;
-	var f = false,
-		d = "",
-		h = g.split(splitterRegex);
-	if (h.length === 1) {
-		d = regex(g, trimTrailingSpaces, cursorPos);
-	} else {
-		var a = g.match(splitterRegex);
-		if (!h[0]) {
-			h.shift();
-			f = true;
+var replaceTypewriterPunctuation = function (
+	text,
+	trimTrailingSpaces,
+	cursorPos,
+) {
+	// Early return for simple cases without code blocks
+	if (
+		!text.includes("`") &&
+		!text.includes("{code") &&
+		!text.includes("{noformat")
+	) {
+		return regex(text, trimTrailingSpaces, cursorPos);
+	}
+
+	// Process complex cases with code blocks
+	var parts = text.split(splitterRegex);
+	var matches = text.match(splitterRegex) || [];
+
+	// Pre-allocate result array for better performance
+	var result = [];
+	var currentPos = 0;
+	var startsWithCodeBlock = !parts[0];
+
+	if (startsWithCodeBlock) {
+		parts.shift();
+	}
+
+	for (var i = 0; i < parts.length; i++) {
+		// Calculate cursor position within this segment
+		var segmentCursorPos = null;
+		if (
+			cursorPos != null &&
+			cursorPos >= currentPos &&
+			cursorPos < currentPos + parts[i].length
+		) {
+			segmentCursorPos = cursorPos - currentPos;
 		}
-		// Track cursor position across code blocks
-		var currentPos = 0;
-		for (var b = 0; b < h.length; ++b) {
-			var segmentCursorPos = cursorPos != null && cursorPos >= currentPos && cursorPos < currentPos + h[b].length
-				? cursorPos - currentPos
-				: null;
-			var c = regex(h[b], trimTrailingSpaces, segmentCursorPos);
-			currentPos += h[b].length;
-			if (a[b]) {
-				currentPos += a[b].length;
-			}
-			if (f) {
-				d += a[b] != null ? a[b] + c : c;
-			} else {
-				d += a[b] != null ? c + a[b] : c;
-			}
+
+		var processed = regex(parts[i], trimTrailingSpaces, segmentCursorPos);
+		currentPos += parts[i].length;
+
+		// Add processed segment and code block (if exists)
+		if (startsWithCodeBlock) {
+			result.push(matches[i] || "", processed);
+		} else {
+			result.push(processed, matches[i] || "");
+		}
+
+		if (matches[i]) {
+			currentPos += matches[i].length;
 		}
 	}
-	return d;
+
+	return result.join("");
 };
 
 var regex = function (g, trimTrailingSpaces, cursorPos) {
@@ -95,36 +199,48 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 	// === ADVANCED SPACE HANDLING ===
 	// Trim trailing whitespace at end of lines (only when explicitly requested)
 	if (trimTrailingSpaces) {
-		result = result.replace(/[ \t]+$/gm, "");
+		result = result.replace(trailingSpacesRegex, "");
 	}
 
 	// Normalize multiple spaces to single space (but not at start of line to preserve indentation)
 	// Allow double space at cursor position for better typing flow (e.g., "hello  world" when typing before existing space)
 	if (cursorPos != null && cursorPos > 0 && cursorPos <= result.length) {
 		// Check if cursor is positioned right after a space, with another space right after cursor
-		var charBefore = result[cursorPos - 1];
-		var charAfter = cursorPos < result.length ? result[cursorPos] : null;
-		if ((charBefore === ' ' || charBefore === '\t') && (charAfter === ' ' || charAfter === '\t')) {
+		var charBeforeCode = result.charCodeAt(cursorPos - 1);
+		var charAfterCode =
+			cursorPos < result.length ? result.charCodeAt(cursorPos) : -1;
+		if (
+			(charBeforeCode === SPACE_CHAR_CODE ||
+				charBeforeCode === TAB_CHAR_CODE) &&
+			(charAfterCode === SPACE_CHAR_CODE || charAfterCode === TAB_CHAR_CODE)
+		) {
 			// Preserve double space at cursor position, but normalize 3+ spaces elsewhere
 			// Use a regex that skips the double space at cursor position
-			result = result.replace(/(\S)([ \t]{2,})/g, function(match, nonSpace, spaces, offset) {
-				// Check if cursor is within the space portion of this match
-				var spaceStart = offset + nonSpace.length;
-				var spaceEnd = offset + match.length;
-				// If cursor is within the spaces and there are exactly 2 spaces, preserve them
-				if (cursorPos >= spaceStart && cursorPos <= spaceEnd && spaces.length === 2) {
-					return match; // Preserve double space at cursor
-				}
-				// Otherwise normalize to single space
-				return nonSpace + ' ';
-			});
+			result = result.replace(
+				multipleSpacesCursorRegex,
+				function (match, nonSpace, spaces, offset) {
+					// Check if cursor is within the space portion of this match
+					var spaceStart = offset + nonSpace.length;
+					var spaceEnd = offset + match.length;
+					// If cursor is within the spaces and there are exactly 2 spaces, preserve them
+					if (
+						cursorPos >= spaceStart &&
+						cursorPos <= spaceEnd &&
+						spaces.length === 2
+					) {
+						return match; // Preserve double space at cursor
+					}
+					// Otherwise normalize to single space
+					return nonSpace + " ";
+				},
+			);
 		} else {
 			// Normal case: normalize 2+ spaces
-			result = result.replace(/(\S)[ \t]{2,}/g, "$1 ");
+			result = result.replace(multipleSpacesRegex, "$1 ");
 		}
 	} else {
 		// Normal case: normalize 2+ spaces
-		result = result.replace(/(\S)[ \t]{2,}/g, "$1 ");
+		result = result.replace(multipleSpacesRegex, "$1 ");
 	}
 
 	// Sentence break dash: " - " → " — " or " – " based on user preference
@@ -132,23 +248,27 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 	// e.g., "text - more" converts, but "- item" or "  - [x]" do NOT
 	// Skip regex entirely if user chose to keep hyphens
 	if (sentenceBreakDash === "em") {
-		result = result.replace(/(\w) - (\w)/g, "$1 — $2");
+		result = result.replace(sentenceBreakDashRegex, "$1 — $2");
 	} else if (sentenceBreakDash === "en") {
-		result = result.replace(/(\w) - (\w)/g, "$1 – $2");
+		result = result.replace(sentenceBreakDashRegex, "$1 – $2");
 	}
+
+	// Apply all optimized replacements
+	result = applySymbolReplacements(result);
+	result = applyApostropheShortenings(result);
 
 	return (
 		result
 
 			// === QUOTE ENHANCEMENTS ===
 			// Fix double-comma quotes to proper bottom quotes (German/Czech style)
-			.replace(/,,/g, "„")
+			.replace(doubleCommaRegex, "„")
 
 			// Foot and inch symbols (must come before quote replacements)
 			// 5'10" or 6' 2" style measurements
-			.replace(/(\d+)\s*'\s*(\d+)\s*"/g, "$1′$2″")
-			.replace(/(\d+)\s*'/g, "$1′")
-			.replace(/(\d+)\s*"/g, "$1″")
+			.replace(measurementFeetInchesRegex, "$1′$2″")
+			.replace(feetSymbolRegex, "$1′")
+			.replace(inchSymbolRegex, "$1″")
 
 			// Primary quotes (opening)
 			.replace(
@@ -189,56 +309,36 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 
 			// === ADVANCED DASH/HYPHEN RULES ===
 			// Three hyphens → em dash (requires word chars on both sides)
-			.replace(/(\w)-{3}(\w)/g, "$1—$2")
+			.replace(threeHyphensRegex, "$1—$2")
 			// Two hyphens → en dash (requires word chars on both sides)
-			.replace(/(\w)-{2}(\w)/g, "$1–$2")
+			.replace(twoHyphensRegex, "$1–$2")
 			// En dash + hyphen → em dash
-			.replace(/(\w)–-(\w)/g, "$1—$2")
+			.replace(enDashHyphenRegex, "$1—$2")
 
 			// En dash for number ranges with optional spaces (1-5 or 2020-2024)
-			.replace(/(\d+)\s*-\s*(\d+)/g, "$1–$2")
+			.replace(numberRangeRegex, "$1–$2")
 
 			// En dash for date ranges (January-March, Mon-Fri)
-			.replace(/(\b[A-Z][a-z]{2,})\s*-\s*(\b[A-Z][a-z]{2,})/g, "$1–$2")
+			.replace(dateRangeRegex, "$1–$2")
 
 			// === ELLIPSIS ===
-			.replace(/([^.…])\.{3}([^.…])/g, "$1…$2")
+			.replace(ellipsisMiddleRegex, "$1…$2")
 			// Handle ellipsis at start/end of string
-			.replace(/^\.\.\./g, "…")
-			.replace(/\.\.\.$/g, "…")
-
-			// === SPECIAL SYMBOLS ===
-			// Copyright, trademark, and registered symbols
-			.replace(/\(c\)/gi, "©")
-			.replace(/\(tm\)/gi, "™")
-			.replace(/\(r\)/gi, "®")
+			.replace(ellipsisStartRegex, "…")
+			.replace(ellipsisEndRegex, "…")
 
 			// === APOSTROPHE ENHANCEMENTS ===
 			// Possessives and contractions (must come after quote replacements)
 			// Common contractions
-			.replace(
-				/\b(don|won|can|couldn|wouldn|shouldn|didn|isn|aren|wasn|weren|hasn|haven|hadn)'t\b/gi,
-				function (match) {
-					return match.slice(0, -2) + "'t";
-				},
-			)
-			.replace(
-				/\b(I|you|we|they|he|she|it|who|what|there|here)'(ll|ve|re|d|m|s)\b/gi,
-				function (match, word, suffix) {
-					return word + "'" + suffix;
-				},
-			)
-
-			// Shortenings whitelist
-			.replace(/'([0-9]{2}s?)\b/gi, "'$1")
-			.replace(/\b'(em)\b/gi, "'$1")
-			.replace(/\b'(twas)\b/gi, "'$1")
-			.replace(/\b'(cause)\b/gi, "'$1")
-			.replace(/\b'(n)\b/gi, "'$1")
-			.replace(/\b(rock|pop)'n'(roll)\b/gi, "$1'n'$2")
+			.replace(contractionsRegex, function (match) {
+				return match.slice(0, -2) + "'t";
+			})
+			.replace(iContractionsRegex, function (match, word, suffix) {
+				return word + "'" + suffix;
+			})
 
 			// Possessive apostrophes (s' and s's)
-			.replace(/([a-z])s'/gi, function (match, letter) {
+			.replace(possessiveRegex, function (match, letter) {
 				return letter + "s'";
 			})
 	);
@@ -351,7 +451,11 @@ var formatTypography = function () {
 		// If there's a selection, format only the selection
 		if (!range.collapsed) {
 			var selectedText = sel.toString();
-			var formattedText = replaceTypewriterPunctuation(selectedText, true, null);
+			var formattedText = replaceTypewriterPunctuation(
+				selectedText,
+				true,
+				null,
+			);
 
 			range.deleteContents();
 			var textNode = document.createTextNode(formattedText);
@@ -365,7 +469,11 @@ var formatTypography = function () {
 		} else {
 			// Format entire contentEditable
 			var originalText = activeElement.textContent;
-			var formattedText = replaceTypewriterPunctuation(originalText, true, null);
+			var formattedText = replaceTypewriterPunctuation(
+				originalText,
+				true,
+				null,
+			);
 			activeElement.textContent = formattedText;
 
 			// Move cursor to end
@@ -386,7 +494,11 @@ var formatTypography = function () {
 			var selectedText = fullText.substring(start, end);
 			var afterSelection = fullText.substring(end);
 
-			var formattedSelection = replaceTypewriterPunctuation(selectedText, true, null);
+			var formattedSelection = replaceTypewriterPunctuation(
+				selectedText,
+				true,
+				null,
+			);
 			activeElement.value =
 				beforeSelection + formattedSelection + afterSelection;
 

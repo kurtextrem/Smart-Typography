@@ -17,7 +17,9 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Quote Enhancements**:
   - Foot (′) and inch (″) symbols for measurements (5'10" → 5′10″)
   - Double-comma fix (,, → „)
-- **Special Symbols**: Copyright (©), trademark (™), and registered (®) from (c), (tm), (r)
+- **Special Symbols**: 
+  - Copyright (©), trademark (™), and registered (®) from (c), (tm), (r)
+  - H20, CO2 to H₂O and CO₂
 - **Space Normalization**: Multiple spaces reduced to single space, unless those at the beginning of a line. Trailing whitespaces at line ends are trimmed.
 - **Ellipses** (…) from three dots
 - **Quick Controls**: Enable/disable and change language from toolbar

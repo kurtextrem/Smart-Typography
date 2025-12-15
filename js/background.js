@@ -421,10 +421,11 @@ var currentPageSetting;
 var fallbackLang;
 var sentenceBreakDash = "em"; // Default to em dash
 var excludedSites = []; // List of excluded domains/URLs
+var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
 
-// Initialize default language, sentence break dash preference, and excluded sites from storage
+// Initialize default language, sentence break dash preference, excluded sites, and ignored classes from storage
 chrome.storage.sync.get(
-	["defaultLanguage", "sentenceBreakDash", "excludedSites"],
+	["defaultLanguage", "sentenceBreakDash", "excludedSites", "ignoredClasses"],
 	function (data) {
 		if (data.defaultLanguage) {
 			fallbackLang = populateLangByCode(data.defaultLanguage);
@@ -438,6 +439,10 @@ chrome.storage.sync.get(
 
 		if (data.excludedSites) {
 			excludedSites = data.excludedSites;
+		}
+
+		if (data.ignoredClasses) {
+			ignoredClasses = data.ignoredClasses;
 		}
 	},
 );
@@ -526,6 +531,13 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 		return true;
 	}
 
+	// Handle ignored classes update
+	if (req.action === "updateIgnoredClasses") {
+		ignoredClasses = req.ignoredClasses || ["monaco"];
+		cb({});
+		return true;
+	}
+
 	// Handle adding an exclusion from popup
 	if (req.action === "addExclusion") {
 		var urlToExclude = req.url;
@@ -556,6 +568,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 				lang: defaultLang,
 				enabled: !isExcluded,
 				sentenceBreakDash: sentenceBreakDash,
+				ignoredClasses: ignoredClasses,
 			});
 			pageSettings = [];
 			currentPageSetting = {
@@ -577,7 +590,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 				currentPageSetting.enabled = false;
 			}
 
-			cb({ ...currentPageSetting, sentenceBreakDash: sentenceBreakDash });
+			cb({ ...currentPageSetting, sentenceBreakDash: sentenceBreakDash, ignoredClasses: ignoredClasses });
 			setBadge(
 				currentPageSetting.enabled ? BADGE.ON : BADGE.OFF,
 				sender.tab.id,
@@ -611,6 +624,7 @@ function toggle(tab, toggleLang) {
 			lang: currentPageSetting.lang,
 			location: tab.url,
 			sentenceBreakDash: sentenceBreakDash,
+			ignoredClasses: ignoredClasses,
 		},
 		function (res) {
 			if (!res) {

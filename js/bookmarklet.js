@@ -22,6 +22,7 @@
 var enabled;
 var lang;
 var sentenceBreakDash = "em"; // Default to em dash
+var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
 
 // Character codes for performance optimization (avoid string comparisons)
 var SPACE_CHAR_CODE = 32; // space
@@ -110,6 +111,21 @@ var isTextField = function (elem) {
 		return elem.type === "text" || elem.type === "TEXT";
 	}
 
+	return false;
+};
+
+var hasIgnoredClass = function (elem) {
+	if (!elem || !elem.className) return false;
+
+	var classList = elem.className.split(" ");
+	for (var i = 0; i < classList.length; i++) {
+		const clx = classList[i];
+		for (let ignoredClass of ignoredClasses) {
+			if (clx.includes(ignoredClass)) {
+				return true;
+			}
+		}
+	}
 	return false;
 };
 
@@ -404,6 +420,7 @@ document.addEventListener(
 		enabled &&
 			!e.isComposing &&
 			isTextField(e.target) &&
+			!hasIgnoredClass(e.target) &&
 			processTextField(e.target);
 	},
 	true,
@@ -423,6 +440,9 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	if (req.sentenceBreakDash) {
 		sentenceBreakDash = req.sentenceBreakDash;
 	}
+	if (req.ignoredClasses) {
+		ignoredClasses = req.ignoredClasses;
+	}
 	cb({ location: req.location });
 });
 
@@ -432,13 +452,16 @@ chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 	if (res.sentenceBreakDash) {
 		sentenceBreakDash = res.sentenceBreakDash;
 	}
+	if (res.ignoredClasses) {
+		ignoredClasses = res.ignoredClasses;
+	}
 });
 
 // Format entire field or selection via context menu
 var formatTypography = function () {
 	var activeElement = document.activeElement;
 
-	if (!isTextField(activeElement)) {
+	if (!isTextField(activeElement) || hasIgnoredClass(activeElement)) {
 		return;
 	}
 

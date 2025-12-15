@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Quotes Test</title>
+</head>
+<body>
+    <h1>Smart Quotes Test</h1>
+
+    <div>
+        <label>Regular input (should work):</label>
+        <input type="text" placeholder="Type quotes here...">
+    </div>
+
+    <div>
+        <label>Textarea (should work):</label>
+        <textarea placeholder="Type quotes here..."></textarea>
+    </div>
+
+    <div>
+        <label>Input with "monaco" class (should be ignored):</label>
+        <input type="text" class="monaco" placeholder="Type quotes here...">
+    </div>
+
+    <div>
+        <label>Textarea with "monaco" class (should be ignored):</label>
+        <textarea class="monaco" placeholder="Type quotes here..."></textarea>
+    </div>
+
+    <div>
+        <label>Input with custom ignored class "code-editor":</label>
+        <input type="text" class="code-editor" placeholder="Type quotes here...">
+    </div>
+
+    <p>Test by typing quotes like " and ' - they should be replaced with smart quotes in the first two fields but not in the others.</p>
+</body>
+</html>

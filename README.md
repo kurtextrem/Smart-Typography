@@ -17,13 +17,13 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Quote Enhancements**:
   - Foot (′) and inch (″) symbols for measurements (5'10" → 5′10″)
   - Double-comma fix (,, → „)
-- **Special Symbols**: 
+- **Special Symbols**:
   - Copyright (©), trademark (™), and registered (®) from (c), (tm), (r)
   - H20, CO2 to H₂O and CO₂
 - **Space Normalization**: Multiple spaces reduced to single space, unless those at the beginning of a line. Trailing whitespaces at line ends are trimmed.
 - **Ellipses** (…) from three dots
 - **Quick Controls**: Enable/disable and change language from toolbar
-- **Site Exclusions**: Disable the extension on specific pages or entire domains via popup or options page
+- **Site / Class Exclusions**: Disable the extension on specific pages or entire domains via popup or options page. By default, it also does not run in Monaco-editor based inputs.
 - **Options Page**: Configure default language, sentence break dash style, excluded sites, and enable/disable right-click menu (right-click extension icon → Options)
 - **Right-Click Menu** (optional): Format existing text in fields via context menu
 - **Per-Site Settings**: All settings saved per page and synced across devices

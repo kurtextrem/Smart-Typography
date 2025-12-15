@@ -1,4 +1,5 @@
 let excludedSites = [];
+let ignoredClasses = [];
 
 // Get languages from background script
 chrome.runtime.sendMessage({ action: "getConstants" }, function (response) {
@@ -20,6 +21,7 @@ chrome.runtime.sendMessage({ action: "getConstants" }, function (response) {
 			"enableContextMenu",
 			"sentenceBreakDash",
 			"excludedSites",
+			"ignoredClasses",
 		],
 		function (data) {
 			if (data.defaultLanguage) {
@@ -38,6 +40,10 @@ chrome.runtime.sendMessage({ action: "getConstants" }, function (response) {
 			// Load excluded sites
 			excludedSites = data.excludedSites || [];
 			renderExclusionList();
+
+			// Load ignored classes
+			ignoredClasses = data.ignoredClasses || ["monaco"];
+			renderIgnoredClassList();
 		},
 	);
 });
@@ -69,6 +75,38 @@ function renderExclusionList() {
 		};
 
 		item.appendChild(urlSpan);
+		item.appendChild(removeBtn);
+		listContainer.appendChild(item);
+	});
+}
+
+// Render the ignored class list
+function renderIgnoredClassList() {
+	const listContainer = document.getElementById("ignoredClassList");
+
+	if (ignoredClasses.length === 0) {
+		listContainer.innerHTML =
+			'<div class="empty-state">No ignored classes</div>';
+		return;
+	}
+
+	listContainer.innerHTML = "";
+	ignoredClasses.forEach(function (className, index) {
+		const item = document.createElement("div");
+		item.className = "exclusion-item";
+
+		const classSpan = document.createElement("span");
+		classSpan.className = "exclusion-url";
+		classSpan.textContent = className;
+
+		const removeBtn = document.createElement("button");
+		removeBtn.className = "remove-btn";
+		removeBtn.textContent = "Remove";
+		removeBtn.onclick = function () {
+			removeIgnoredClass(index);
+		};
+
+		item.appendChild(classSpan);
 		item.appendChild(removeBtn);
 		listContainer.appendChild(item);
 	});
@@ -114,12 +152,59 @@ function removeExclusion(index) {
 	saveExcludedSites();
 }
 
+// Add ignored class
+document.getElementById("addIgnoredClass").addEventListener("click", function () {
+	const input = document.getElementById("ignoredClassInput");
+	const value = input.value.trim();
+
+	if (!value) {
+		return;
+	}
+
+	// Check if already exists
+	if (ignoredClasses.includes(value)) {
+		alert("This class is already in the ignored list.");
+		return;
+	}
+
+	ignoredClasses.push(value);
+	input.value = "";
+	renderIgnoredClassList();
+	saveIgnoredClasses();
+});
+
+// Allow adding by pressing Enter
+document
+	.getElementById("ignoredClassInput")
+	.addEventListener("keypress", function (e) {
+		if (e.key === "Enter") {
+			document.getElementById("addIgnoredClass").click();
+		}
+	});
+
+// Remove ignored class
+function removeIgnoredClass(index) {
+	ignoredClasses.splice(index, 1);
+	renderIgnoredClassList();
+	saveIgnoredClasses();
+}
+
 // Save excluded sites to storage
 function saveExcludedSites() {
 	chrome.storage.sync.set({ excludedSites: excludedSites }, function () {
 		chrome.runtime.sendMessage({
 			action: "updateExcludedSites",
 			excludedSites: excludedSites,
+		});
+	});
+}
+
+// Save ignored classes to storage
+function saveIgnoredClasses() {
+	chrome.storage.sync.set({ ignoredClasses: ignoredClasses }, function () {
+		chrome.runtime.sendMessage({
+			action: "updateIgnoredClasses",
+			ignoredClasses: ignoredClasses,
 		});
 	});
 }
@@ -137,6 +222,7 @@ document.getElementById("save").addEventListener("click", function () {
 			defaultLanguage: defaultLanguage,
 			enableContextMenu: enableContextMenu,
 			sentenceBreakDash: sentenceBreakDash,
+			ignoredClasses: ignoredClasses,
 		},
 		function () {
 			// Show success message

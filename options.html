@@ -182,6 +182,21 @@
 		</div>
 	</div>
 
+	<div class="option-group">
+		<label>Ignored Classes</label>
+		<div class="description">
+			Add CSS class names for input/textarea elements that should be ignored.
+			Examples: “monaco”, “code-editor”, “no-smart-quotes”. Matches if the class name contains the given string.
+		</div>
+		<div class="add-exclusion">
+			<input type="text" id="ignoredClassInput" placeholder="Enter class name (e.g., monaco)">
+			<button id="addIgnoredClass" type="button">Add</button>
+		</div>
+		<div id="ignoredClassList" class="exclusion-list">
+			<div class="empty-state">No ignored classes</div>
+		</div>
+	</div>
+
 	<button id="save">Save</button>
 
 	<div id="saveStatus" class="save-status"></div>

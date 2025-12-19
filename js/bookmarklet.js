@@ -48,6 +48,8 @@ var symbolReplacements = {
 	"(c)": "©",
 	"(tm)": "™",
 	"(r)": "®",
+	"->": "→",
+	"<-": "←",
 };
 
 const chemicalFormulas = {
@@ -55,7 +57,7 @@ const chemicalFormulas = {
 	h2o: "H₂O",
 };
 
-const symbolReplacementsRegex = /\((c|tm|r)\)/gi;
+const symbolReplacementsRegex = /\((c|tm|r)\)|->|<-/gi;
 const chemicalFormulasRegex = /\b(co2|h2o)\b/gi;
 
 // Optimized symbol replacement function

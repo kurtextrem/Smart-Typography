@@ -20,6 +20,7 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Special Symbols**:
   - Copyright (©), trademark (™), and registered (®) from (c), (tm), (r)
   - H20, CO2 to H₂O and CO₂
+  - Arrow symbols: -> to → and <- to ←
 - **Space Normalization**: Multiple spaces reduced to single space, unless those at the beginning of a line. Trailing whitespaces at line ends are trimmed.
 - **Ellipses** (…) from three dots
 - **Quick Controls**: Enable/disable and change language from toolbar
@@ -44,7 +45,7 @@ Depending on which language you have set, the following chars will be replaced f
 ## Universal Replacements
 
 These chars will be replaced regardless of language:
-', --, ---, ..., (c), (tm), (r), foot/inch symbols
+', --, ---, ..., ->, <-, (c), (tm), (r), foot/inch symbols
 
 ## Typography Resources
 

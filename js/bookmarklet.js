@@ -23,6 +23,39 @@ var enabled;
 var lang;
 var sentenceBreakDash = "em"; // Default to em dash
 var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
+var validMonthNames = []; // Will be populated with localized month names
+var validDayNames = []; // Will be populated with localized day names
+
+// Generate localized month and day names for date range validation
+var generateValidDateNames = function() {
+	if (!lang || !lang.code) return;
+
+	var locale = lang.code.toLowerCase();
+	validMonthNames = [];
+	validDayNames = [];
+
+	// Generate month names (full and short)
+	for (var i = 0; i < 12; i++) {
+		try {
+			var date = new Date(2000, i, 1);
+			validMonthNames.push(date.toLocaleDateString(locale, { month: 'long' }));
+			validMonthNames.push(date.toLocaleDateString(locale, { month: 'short' }));
+		} catch (e) {
+			// Fallback for any locale issues
+		}
+	}
+
+	// Generate day names (full and short)
+	for (var i = 1; i <= 7; i++) {
+		try {
+			var date = new Date(2000, 0, i); // Sunday = 0, but we want Monday-Sunday
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: 'long' }));
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: 'short' }));
+		} catch (e) {
+			// Fallback for any locale issues
+		}
+	}
+};
 
 // Character codes for performance optimization (avoid string comparisons)
 var SPACE_CHAR_CODE = 32; // space
@@ -337,7 +370,17 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 			.replace(numberRangeRegex, "$1–$2")
 
 			// En dash for date ranges (January-March, Mon-Fri)
-			.replace(dateRangeRegex, "$1–$2")
+			.replace(dateRangeRegex, function(match, word1, word2) {
+				// Only replace if both words are valid month or day names
+				if (validMonthNames.includes(word1) && validMonthNames.includes(word2)) {
+					return word1 + "–" + word2;
+				}
+				if (validDayNames.includes(word1) && validDayNames.includes(word2)) {
+					return word1 + "–" + word2;
+				}
+				// If not valid date names, return the original match unchanged
+				return match;
+			})
 
 			// === ELLIPSIS ===
 			.replace(ellipsisMiddleRegex, "$1…$2")
@@ -439,6 +482,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	// Handle initialization
 	enabled = req.enabled;
 	lang = req.lang;
+	generateValidDateNames(); // Generate localized month/day names
 	if (req.sentenceBreakDash) {
 		sentenceBreakDash = req.sentenceBreakDash;
 	}
@@ -451,6 +495,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 	enabled = res.enabled;
 	lang = res.lang;
+	generateValidDateNames(); // Generate localized month/day names
 	if (res.sentenceBreakDash) {
 		sentenceBreakDash = res.sentenceBreakDash;
 	}

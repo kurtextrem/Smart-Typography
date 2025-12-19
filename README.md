@@ -13,7 +13,7 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Dash Intelligence**:
   - Configurable sentence break dashes: choose em dash (—), en dash (–), or keep hyphen (-) for spaced hyphens (` - `) - to avoid looking like AI slop 🤖
   - Em dashes (—) from three hyphens; does not replace them in lists (`- text`)
-  - En dashes (–) from two hyphens, number ranges (1-5 → 1–5), or date ranges (Mon-Fri)
+  - En dashes (–) from two hyphens, number ranges (1-5 → 1–5), or date ranges (Mon-Fri, Jan-Dec)
 - **Quote Enhancements**:
   - Foot (′) and inch (″) symbols for measurements (5'10" → 5′10″)
   - Double-comma fix (,, → „)

@@ -27,7 +27,7 @@ var validMonthNames = []; // Will be populated with localized month names
 var validDayNames = []; // Will be populated with localized day names
 
 // Generate localized month and day names for date range validation
-var generateValidDateNames = function() {
+var generateValidDateNames = function () {
 	if (!lang || !lang.code) return;
 
 	var locale = lang.code.toLowerCase();
@@ -38,8 +38,8 @@ var generateValidDateNames = function() {
 	for (var i = 0; i < 12; i++) {
 		try {
 			var date = new Date(2000, i, 1);
-			validMonthNames.push(date.toLocaleDateString(locale, { month: 'long' }));
-			validMonthNames.push(date.toLocaleDateString(locale, { month: 'short' }));
+			validMonthNames.push(date.toLocaleDateString(locale, { month: "long" }));
+			validMonthNames.push(date.toLocaleDateString(locale, { month: "short" }));
 		} catch (e) {
 			// Fallback for any locale issues
 		}
@@ -49,8 +49,8 @@ var generateValidDateNames = function() {
 	for (var i = 1; i <= 7; i++) {
 		try {
 			var date = new Date(2000, 0, i); // Sunday = 0, but we want Monday-Sunday
-			validDayNames.push(date.toLocaleDateString(locale, { weekday: 'long' }));
-			validDayNames.push(date.toLocaleDateString(locale, { weekday: 'short' }));
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: "long" }));
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: "short" }));
 		} catch (e) {
 			// Fallback for any locale issues
 		}
@@ -85,13 +85,13 @@ var symbolReplacements = {
 	"<-": "←",
 };
 
-const chemicalFormulas = {
+var wordReplacements = {
 	co2: "CO₂",
 	h2o: "H₂O",
 };
 
-const symbolReplacementsRegex = /\((c|tm|r)\)|->|<-/gi;
-const chemicalFormulasRegex = /\b(co2|h2o)\b/gi;
+var symbolReplacementsRegex = /(?:\((?:c|tm|r)\)|[^-]->|<-)/gi;
+var wordReplacementsRegex = /\b(?:co2|h2o)\b/gi;
 
 // Optimized symbol replacement function
 var applySymbolReplacements = function (text) {
@@ -99,8 +99,8 @@ var applySymbolReplacements = function (text) {
 		.replace(symbolReplacementsRegex, function (match) {
 			return symbolReplacements[match.toLowerCase()] || match;
 		})
-		.replace(chemicalFormulasRegex, function (match) {
-			return chemicalFormulas[match.toLowerCase()] || match;
+		.replace(wordReplacementsRegex, function (match) {
+			return wordReplacements[match.toLowerCase()] || match;
 		});
 };
 
@@ -370,9 +370,12 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 			.replace(numberRangeRegex, "$1–$2")
 
 			// En dash for date ranges (January-March, Mon-Fri)
-			.replace(dateRangeRegex, function(match, word1, word2) {
+			.replace(dateRangeRegex, function (match, word1, word2) {
 				// Only replace if both words are valid month or day names
-				if (validMonthNames.includes(word1) && validMonthNames.includes(word2)) {
+				if (
+					validMonthNames.includes(word1) &&
+					validMonthNames.includes(word2)
+				) {
 					return word1 + "–" + word2;
 				}
 				if (validDayNames.includes(word1) && validDayNames.includes(word2)) {

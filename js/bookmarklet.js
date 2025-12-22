@@ -108,9 +108,8 @@ var trailingSpacesRegex = /[ \t]+$/gm;
 var multipleSpacesCursorRegex = /(\S)([ \t]{2,})/g;
 var multipleSpacesRegex = /(\S)[ \t]{2,}/g;
 var sentenceBreakDashRegex = /(\w) - (\w)/g;
-var threeHyphensRegex = /(\w)-{3}(\w)/g;
-var twoHyphensRegex = /(\w)-{2}(\w)/g;
-var enDashHyphenRegex = /(\w)–-(\w)/g;
+var doubleHyphenRegex = /--/g;
+var enDashHyphenRegex = /–-/g;
 var numberRangeRegex = /(\d+)\s*-\s*(\d+)/g;
 var dateRangeRegex = /(\b[A-Z][a-z]{2,})\s*-\s*(\b[A-Z][a-z]{2,})/g;
 var ellipsisMiddleRegex = /([^.…])\.{3}([^.…])/g;
@@ -359,12 +358,10 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 			)
 
 			// === ADVANCED DASH/HYPHEN RULES ===
-			// Three hyphens → em dash (requires word chars on both sides)
-			.replace(threeHyphensRegex, "$1—$2")
-			// Two hyphens → en dash (requires word chars on both sides)
-			.replace(twoHyphensRegex, "$1–$2")
-			// En dash + hyphen → em dash
-			.replace(enDashHyphenRegex, "$1—$2")
+			// Any "--" → en dash
+			.replace(doubleHyphenRegex, "–")
+			// En dash + "-" → em dash
+			.replace(enDashHyphenRegex, "—")
 
 			// En dash for number ranges with optional spaces (1-5 or 2020-2024)
 			.replace(numberRangeRegex, "$1–$2")

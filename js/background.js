@@ -679,6 +679,14 @@ function setBadge(newBadge, tabId) {
 }
 
 function getPageFromSettings(location) {
+	if (!pageSettings) {
+		return {
+			location: location,
+			enabled: true,
+			lang: fallbackLang || populateLangByCode("en"),
+		};
+	}
+
 	var i = 0;
 	for (; i < pageSettings.length; i++) {
 		var pageSetting = pageSettings[i];

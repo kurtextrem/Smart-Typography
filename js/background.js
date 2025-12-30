@@ -422,10 +422,11 @@ var fallbackLang;
 var sentenceBreakDash = "em"; // Default to em dash
 var excludedSites = []; // List of excluded domains/URLs
 var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
+var globalEnabled = true; // Global enable/disable state
 
 // Initialize default language, sentence break dash preference, excluded sites, and ignored classes from storage
 chrome.storage.sync.get(
-	["defaultLanguage", "sentenceBreakDash", "excludedSites", "ignoredClasses"],
+	["defaultLanguage", "sentenceBreakDash", "excludedSites", "ignoredClasses", "globalEnabled"],
 	function (data) {
 		if (data.defaultLanguage) {
 			fallbackLang = populateLangByCode(data.defaultLanguage);
@@ -443,6 +444,10 @@ chrome.storage.sync.get(
 
 		if (data.ignoredClasses) {
 			ignoredClasses = data.ignoredClasses;
+		}
+
+		if (data.globalEnabled !== undefined) {
+			globalEnabled = data.globalEnabled;
 		}
 	},
 );
@@ -566,17 +571,17 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 			cb({
 				location: location,
 				lang: defaultLang,
-				enabled: !isExcluded,
+				enabled: globalEnabled && !isExcluded,
 				sentenceBreakDash: sentenceBreakDash,
 				ignoredClasses: ignoredClasses,
 			});
 			pageSettings = [];
 			currentPageSetting = {
-				enabled: !isExcluded,
+				enabled: globalEnabled && !isExcluded,
 				location: sender.tab.url,
 				lang: defaultLang,
 			};
-			setBadge(isExcluded ? BADGE.OFF : BADGE.ON, sender.tab.id);
+			setBadge((globalEnabled && !isExcluded) ? BADGE.ON : BADGE.OFF, sender.tab.id);
 		} else {
 			pageSettingsFromStorage.filter(function (pageSetting) {
 				return (pageSetting.lang = populateLangByCode(pageSetting.lang));
@@ -585,10 +590,8 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 			pageSettings = pageSettingsFromStorage;
 			currentPageSetting = getPageFromSettings(sender.tab.url);
 
-			// Override enabled state if URL is excluded
-			if (isExcluded) {
-				currentPageSetting.enabled = false;
-			}
+			// Override enabled state based on global and exclusion
+			currentPageSetting.enabled = globalEnabled && !isExcluded;
 
 			cb({ ...currentPageSetting, sentenceBreakDash: sentenceBreakDash, ignoredClasses: ignoredClasses });
 			setBadge(
@@ -602,59 +605,40 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 });
 
 function toggle(tab, toggleLang) {
-	// Ensure currentPageSetting exists
-	if (!currentPageSetting) {
-		currentPageSetting = {
-			enabled: true,
-			location: tab.url,
-			lang: fallbackLang || populateLangByCode("en"),
-		};
-	}
-
 	if (toggleLang === true) {
-		setBadge(BADGE.ON, tab.id);
+		globalEnabled = true;
 	} else {
-		setBadge(currentBadge === BADGE.ON ? BADGE.OFF : BADGE.ON, tab.id);
+		globalEnabled = !globalEnabled;
 	}
+	chrome.storage.sync.set({ globalEnabled: globalEnabled });
 
-	chrome.tabs.sendMessage(
-		tab.id,
-		{
-			enabled: currentBadge === BADGE.ON,
-			lang: currentPageSetting.lang,
-			location: tab.url,
-			sentenceBreakDash: sentenceBreakDash,
-			ignoredClasses: ignoredClasses,
-		},
-		function (res) {
-			if (!res) {
-				// When the extension had just been installed and the page has not yet been refreshed,
-				// the content script will not yet have loaded and the page would therefore need a refresh.
-				return;
-			}
+	// Update all open tabs
+	chrome.tabs.query({}, function(tabs) {
+		tabs.forEach(function(tab) {
+			var isExcluded = isUrlExcluded(tab.url);
+			var enabled = globalEnabled && !isExcluded;
+			var pageSetting = getPageFromSettings(tab.url);
+			var badgeText = enabled ? formatLangCode(pageSetting.lang.code) : BADGE.OFF.TEXT;
+			chrome.action.setBadgeText({ text: badgeText, tabId: tab.id });
+			chrome.action.setBadgeBackgroundColor({ color: enabled ? BADGE.ON.COLOR : BADGE.OFF.COLOR, tabId: tab.id });
 
-			currentPageSetting = updatePageFromSettings(tab.url, {
-				enabled: currentBadge === BADGE.ON,
-				lang: currentPageSetting.lang,
+			// Send update to content script
+			chrome.tabs.sendMessage(tab.id, {
+				enabled: enabled,
+				lang: pageSetting.lang,
+				location: tab.url,
+				sentenceBreakDash: sentenceBreakDash,
+				ignoredClasses: ignoredClasses,
 			});
-			storePageSettings();
-		},
-	);
+		});
+	});
 
-	return currentBadge;
+	return globalEnabled ? BADGE.ON : BADGE.OFF;
 }
 
 function switchLangTo(lang, tab) {
-	if (!currentPageSetting) {
-		currentPageSetting = {
-			enabled: true,
-			location: tab.url,
-			lang: lang,
-		};
-	} else {
-		currentPageSetting.lang = lang;
-		currentPageSetting.enabled = true;
-	}
+	globalEnabled = true;
+	chrome.storage.sync.set({ globalEnabled: true });
 	toggle(tab, true);
 }
 

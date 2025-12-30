@@ -136,17 +136,22 @@ var measurementFeetInchesRegex = /(\d+)\s*'\s*(\d+)\s*"/g;
 var feetSymbolRegex = /(\d+)\s*'/g;
 var inchSymbolRegex = /(\d+)\s*"/g;
 
-var disabledInputTypes = ["search"]
+var disabledTextareaTypes = ["search"]
+var disabledTextareaNames = ["q"]
 
 var isTextField = function (elem) {
 	if (elem.isContentEditable) return true;
 
 	var tagName = elem.tagName;
-	if (tagName === "TEXTAREA") return true;
+	if (tagName === "TEXTAREA") {
+		var inputType = elem.type.toLowerCase();
+		var inputName = elem.name.toLowerCase();
+		return !disabledTextareaTypes.includes(inputType) && !disabledTextareaNames.includes(inputName);
+	}
 
 	if (tagName === "INPUT") {
 		var inputType = elem.type.toLowerCase();
-		return (inputType === "text" || inputType === "TEXT") && !disabledInputTypes.includes(inputType);
+		return inputType === "text";
 	}
 
 	return false;

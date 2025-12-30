@@ -24,7 +24,7 @@ Smart Typography is the last extension you will need to write beautiful typograp
 - **Space Normalization**: Multiple spaces reduced to single space, unless those at the beginning of a line. Trailing whitespaces at line ends are trimmed.
 - **Ellipses** (…) from three dots
 - **Quick Controls**: Enable/disable and change language from toolbar
-- **Site / Class Exclusions**: Disable the extension on specific pages or entire domains via popup or options page. By default, it does not run in Monaco-editor based inputs. Also disabled in search inputs.
+- **Site / Class Exclusions**: Disable the extension on specific pages or entire domains via popup or options page. By default, it does not run in Monaco-editor based inputs. Also disabled in search inputs (e.g. on Google search or Bing).
 - **Options Page**: Configure default language, sentence break dash style, excluded sites, and enable/disable right-click menu (right-click extension icon → Options)
 - **Right-Click Menu** (optional): Format existing text in fields via context menu
 - **Per-Site Settings**: All settings saved per page and synced across devices

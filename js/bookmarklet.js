@@ -121,8 +121,8 @@ var contractionsRegex =
 var iContractionsRegex =
 	/\b(I|you|we|they|he|she|it|who|what|there|here)'(ll|ve|re|d|m|s)\b/gi;
 // Combined apostrophe shortening patterns
-const apostropheShorteningsRegex = /\b'(em|twas|cause|n|[0-9]{2}s?)\b/gi;
-const rocknrollRegex = /\b(rock|pop)'n'(roll)\b/gi;
+var apostropheShorteningsRegex = /\b'(em|twas|cause|n|[0-9]{2}s?)\b/gi;
+var rocknrollRegex = /\b(rock|pop)'n'(roll)\b/gi;
 
 // Optimized apostrophe shortening replacement function
 var applyApostropheShortenings = function (text) {
@@ -136,6 +136,8 @@ var measurementFeetInchesRegex = /(\d+)\s*'\s*(\d+)\s*"/g;
 var feetSymbolRegex = /(\d+)\s*'/g;
 var inchSymbolRegex = /(\d+)\s*"/g;
 
+var disabledInputTypes = ["search"]
+
 var isTextField = function (elem) {
 	if (elem.isContentEditable) return true;
 
@@ -143,7 +145,8 @@ var isTextField = function (elem) {
 	if (tagName === "TEXTAREA") return true;
 
 	if (tagName === "INPUT") {
-		return elem.type === "text" || elem.type === "TEXT";
+		var inputType = elem.type.toLowerCase();
+		return (inputType === "text" || inputType === "TEXT") && !disabledInputTypes.includes(inputType);
 	}
 
 	return false;

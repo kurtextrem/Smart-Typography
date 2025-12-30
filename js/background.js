@@ -424,6 +424,40 @@ var excludedSites = []; // List of excluded domains/URLs
 var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
 var globalEnabled = true; // Global enable/disable state
 
+// Generate localized month and day names for date range validation
+function generateValidDateNames(lang) {
+	var validMonthNames = [];
+	var validDayNames = [];
+
+	if (!lang || !lang.code) return { validMonthNames, validDayNames };
+
+	var locale = lang.code.toLowerCase();
+
+	// Generate month names (full and short)
+	for (var i = 0; i < 12; i++) {
+		try {
+			var date = new Date(2000, i, 1);
+			validMonthNames.push(date.toLocaleDateString(locale, { month: "long" }));
+			validMonthNames.push(date.toLocaleDateString(locale, { month: "short" }));
+		} catch (e) {
+			// Fallback for any locale issues
+		}
+	}
+
+	// Generate day names (full and short)
+	for (var i = 1; i <= 7; i++) {
+		try {
+			var date = new Date(2000, 0, i); // Sunday = 0, but we want Monday-Sunday
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: "long" }));
+			validDayNames.push(date.toLocaleDateString(locale, { weekday: "short" }));
+		} catch (e) {
+			// Fallback for any locale issues
+		}
+	}
+
+	return { validMonthNames, validDayNames };
+}
+
 // Initialize default language, sentence break dash preference, excluded sites, and ignored classes from storage
 chrome.storage.sync.get(
 	["defaultLanguage", "sentenceBreakDash", "excludedSites", "ignoredClasses", "globalEnabled"],
@@ -568,12 +602,15 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 		var isExcluded = isUrlExcluded(sender.tab.url);
 
 		if (!pageSettingsFromStorage) {
+			var dateNames = generateValidDateNames(defaultLang);
 			cb({
 				location: location,
 				lang: defaultLang,
 				enabled: globalEnabled && !isExcluded,
 				sentenceBreakDash: sentenceBreakDash,
 				ignoredClasses: ignoredClasses,
+				validMonthNames: dateNames.validMonthNames,
+				validDayNames: dateNames.validDayNames,
 			});
 			pageSettings = [];
 			currentPageSetting = {
@@ -593,7 +630,14 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 			// Override enabled state based on global and exclusion
 			currentPageSetting.enabled = globalEnabled && !isExcluded;
 
-			cb({ ...currentPageSetting, sentenceBreakDash: sentenceBreakDash, ignoredClasses: ignoredClasses });
+			var dateNames = generateValidDateNames(currentPageSetting.lang);
+			cb({
+				...currentPageSetting,
+				sentenceBreakDash: sentenceBreakDash,
+				ignoredClasses: ignoredClasses,
+				validMonthNames: dateNames.validMonthNames,
+				validDayNames: dateNames.validDayNames,
+			});
 			setBadge(
 				currentPageSetting.enabled ? BADGE.ON : BADGE.OFF,
 				sender.tab.id,
@@ -605,11 +649,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 });
 
 function toggle(tab, toggleLang) {
-	if (toggleLang === true) {
-		globalEnabled = true;
-	} else {
-		globalEnabled = !globalEnabled;
-	}
+	globalEnabled = toggleLang === true ? true : !globalEnabled;
 	chrome.storage.sync.set({ globalEnabled: globalEnabled });
 
 	// Update all open tabs
@@ -623,12 +663,15 @@ function toggle(tab, toggleLang) {
 			chrome.action.setBadgeBackgroundColor({ color: enabled ? BADGE.ON.COLOR : BADGE.OFF.COLOR, tabId: tab.id });
 
 			// Send update to content script
+			var dateNames = generateValidDateNames(pageSetting.lang);
 			chrome.tabs.sendMessage(tab.id, {
 				enabled: enabled,
 				lang: pageSetting.lang,
 				location: tab.url,
 				sentenceBreakDash: sentenceBreakDash,
 				ignoredClasses: ignoredClasses,
+				validMonthNames: dateNames.validMonthNames,
+				validDayNames: dateNames.validDayNames,
 			});
 		});
 	});
@@ -724,9 +767,9 @@ function populateLangByCode(langCode) {
 		var obj = LANGUAGES[i];
 
 		if (
-			LANGUAGES[i].code.toLowerCase() === langCode.substr(0, 2).toLowerCase()
+			obj.code.toLowerCase() === langCode.substr(0, 2).toLowerCase()
 		) {
-			return LANGUAGES[i];
+			return obj;
 		}
 	}
 
@@ -738,11 +781,13 @@ function setDefaultLang() {
 
 	var i = 0;
 	for (; i < LANGUAGES.length; i++) {
+		var obj = LANGUAGES[i];
+
 		if (
 			browserUiLang.substr(0, 2).toLowerCase() ===
-			LANGUAGES[i].code.toLowerCase()
+			obj.code.toLowerCase()
 		) {
-			return LANGUAGES[i];
+			return obj;
 		}
 	}
 	return populateLangByCode("en");

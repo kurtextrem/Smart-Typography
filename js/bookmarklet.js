@@ -26,36 +26,11 @@ var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea e
 var validMonthNames = []; // Will be populated with localized month names
 var validDayNames = []; // Will be populated with localized day names
 
-// Generate localized month and day names for date range validation
-var generateValidDateNames = function () {
-	if (!lang || !lang.code) return;
-
-	var locale = lang.code.toLowerCase();
-	validMonthNames = [];
-	validDayNames = [];
-
-	// Generate month names (full and short)
-	for (var i = 0; i < 12; i++) {
-		try {
-			var date = new Date(2000, i, 1);
-			validMonthNames.push(date.toLocaleDateString(locale, { month: "long" }));
-			validMonthNames.push(date.toLocaleDateString(locale, { month: "short" }));
-		} catch (e) {
-			// Fallback for any locale issues
-		}
-	}
-
-	// Generate day names (full and short)
-	for (var i = 1; i <= 7; i++) {
-		try {
-			var date = new Date(2000, 0, i); // Sunday = 0, but we want Monday-Sunday
-			validDayNames.push(date.toLocaleDateString(locale, { weekday: "long" }));
-			validDayNames.push(date.toLocaleDateString(locale, { weekday: "short" }));
-		} catch (e) {
-			// Fallback for any locale issues
-		}
-	}
-};
+// Cached regexps for quote replacements
+var primaryOpeningRegex;
+var secondaryOpeningRegex;
+var primaryClosingRegex;
+var secondaryClosingRegex;
 
 // Character codes for performance optimization (avoid string comparisons)
 var SPACE_CHAR_CODE = 32; // space
@@ -330,41 +305,13 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 			.replace(inchSymbolRegex, "$1″")
 
 			// Primary quotes (opening)
-			.replace(
-				new RegExp(
-					"(\\s|^|\\(|\\>|\\])(" +
-						lang.replacePrimary[0] +
-						")(?=[^>\\]]*(<|\\[|$))",
-					"g",
-				),
-				"$1" + lang.primary[0],
-			)
+			.replace(primaryOpeningRegex, "$1" + lang.primary[0])
 			// Secondary quotes (opening)
-			.replace(
-				new RegExp(
-					"(\\s|^|\\(|\\>|\\])(" +
-						lang.replaceSecondary[0] +
-						")(?=[^>\\]]*(<|\\[|$))",
-					"g",
-				),
-				"$1" + lang.secondary[0],
-			)
+			.replace(secondaryOpeningRegex, "$1" + lang.secondary[0])
 			// Primary quotes (closing)
-			.replace(
-				new RegExp(
-					"(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
-					"g",
-				),
-				"$1" + lang.primary[1],
-			)
+			.replace(primaryClosingRegex, "$1" + lang.primary[1])
 			// Secondary quotes (closing)
-			.replace(
-				new RegExp(
-					"(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
-					"g",
-				),
-				"$1" + lang.secondary[1],
-			)
+			.replace(secondaryClosingRegex, "$1" + lang.secondary[1])
 
 			// === ADVANCED DASH/HYPHEN RULES ===
 			// Three hyphens → em dash (requires word chars on both sides)
@@ -493,7 +440,29 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	// Handle initialization
 	enabled = req.enabled;
 	lang = req.lang;
-	generateValidDateNames(); // Generate localized month/day names
+	validMonthNames = req.validMonthNames || [];
+	validDayNames = req.validDayNames || [];
+	// Cache regexps for quote replacements
+	primaryOpeningRegex = new RegExp(
+		"(\\s|^|\\(|\\>|\\])(" +
+			lang.replacePrimary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	secondaryOpeningRegex = new RegExp(
+		"(\\s|^|\\(|\\>|\\])(" +
+			lang.replaceSecondary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	primaryClosingRegex = new RegExp(
+		"(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	secondaryClosingRegex = new RegExp(
+		"(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
 	if (req.sentenceBreakDash) {
 		sentenceBreakDash = req.sentenceBreakDash;
 	}
@@ -506,7 +475,29 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 	enabled = res.enabled;
 	lang = res.lang;
-	generateValidDateNames(); // Generate localized month/day names
+	validMonthNames = res.validMonthNames || [];
+	validDayNames = res.validDayNames || [];
+	// Cache regexps for quote replacements
+	primaryOpeningRegex = new RegExp(
+		"(\\s|^|\\(|\\>|\\])(" +
+			lang.replacePrimary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	secondaryOpeningRegex = new RegExp(
+		"(\\s|^|\\(|\\>|\\])(" +
+			lang.replaceSecondary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	primaryClosingRegex = new RegExp(
+		"(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
+	secondaryClosingRegex = new RegExp(
+		"(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"g",
+	);
 	if (res.sentenceBreakDash) {
 		sentenceBreakDash = res.sentenceBreakDash;
 	}

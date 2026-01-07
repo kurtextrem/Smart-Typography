@@ -88,9 +88,9 @@ var twoHyphensRegex = /(\w)-{2}(\w)/g;
 var enDashHyphenRegex = /(\w)–-(\w)/g;
 var numberRangeRegex = /(\d+)\s*-\s*(\d+)/g;
 var dateRangeRegex = /(\b[A-Z][a-z]{2,})\s*-\s*(\b[A-Z][a-z]{2,})/g;
-var ellipsisMiddleRegex = /([^.…])\.{3}([^.…])/g;
-var ellipsisStartRegex = /^\.\.\./g;
-var ellipsisEndRegex = /\.\.\.$/g;
+var ellipsisMiddleRegex = /([^.…])\.{3}(?!\s*-->)([^.…])/g;
+var ellipsisStartRegex = /^\.\.\.(?!\s*-->)/g;
+var ellipsisEndRegex = /\.\.\.$(?!\s*-->)/g;
 var contractionsRegex =
 	/\b(don|won|can|couldn|wouldn|shouldn|didn|isn|aren|wasn|weren|hasn|haven|hadn)'t\b/gi;
 var iContractionsRegex =
@@ -111,8 +111,8 @@ var measurementFeetInchesRegex = /(\d+)\s*'\s*(\d+)\s*"/g;
 var feetSymbolRegex = /(\d+)\s*'/g;
 var inchSymbolRegex = /(\d+)\s*"/g;
 
-var disabledTextareaTypes = ["search"]
-var disabledTextareaNames = ["q"]
+var disabledTextareaTypes = ["search"];
+var disabledTextareaNames = ["q"];
 
 var isTextField = function (elem) {
 	if (elem.isContentEditable) return true;
@@ -121,7 +121,10 @@ var isTextField = function (elem) {
 	if (tagName === "TEXTAREA") {
 		var inputType = elem.type.toLowerCase();
 		var inputName = elem.name.toLowerCase();
-		return !disabledTextareaTypes.includes(inputType) && !disabledTextareaNames.includes(inputName);
+		return (
+			!disabledTextareaTypes.includes(inputType) &&
+			!disabledTextareaNames.includes(inputName)
+		);
 	}
 
 	if (tagName === "INPUT") {
@@ -444,9 +447,7 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	validDayNames = req.validDayNames || [];
 	// Cache regexps for quote replacements
 	primaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" +
-			lang.replacePrimary[0] +
-			")(?=[^>\\]]*(<|\\[|$))",
+		"(\\s|^|\\(|\\>|\\])(" + lang.replacePrimary[0] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryOpeningRegex = new RegExp(
@@ -479,9 +480,7 @@ chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 	validDayNames = res.validDayNames || [];
 	// Cache regexps for quote replacements
 	primaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" +
-			lang.replacePrimary[0] +
-			")(?=[^>\\]]*(<|\\[|$))",
+		"(\\s|^|\\(|\\>|\\])(" + lang.replacePrimary[0] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryOpeningRegex = new RegExp(

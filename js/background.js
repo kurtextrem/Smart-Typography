@@ -460,7 +460,13 @@ function generateValidDateNames(lang) {
 
 // Initialize default language, sentence break dash preference, excluded sites, and ignored classes from storage
 chrome.storage.sync.get(
-	["defaultLanguage", "sentenceBreakDash", "excludedSites", "ignoredClasses", "globalEnabled"],
+	[
+		"defaultLanguage",
+		"sentenceBreakDash",
+		"excludedSites",
+		"ignoredClasses",
+		"globalEnabled",
+	],
 	function (data) {
 		if (data.defaultLanguage) {
 			fallbackLang = populateLangByCode(data.defaultLanguage);
@@ -618,7 +624,10 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 				location: sender.tab.url,
 				lang: defaultLang,
 			};
-			setBadge((globalEnabled && !isExcluded) ? BADGE.ON : BADGE.OFF, sender.tab.id);
+			setBadge(
+				globalEnabled && !isExcluded ? BADGE.ON : BADGE.OFF,
+				sender.tab.id,
+			);
 		} else {
 			pageSettingsFromStorage.filter(function (pageSetting) {
 				return (pageSetting.lang = populateLangByCode(pageSetting.lang));
@@ -653,14 +662,19 @@ function toggle(tab, toggleLang) {
 	chrome.storage.sync.set({ globalEnabled: globalEnabled });
 
 	// Update all open tabs
-	chrome.tabs.query({}, function(tabs) {
-		tabs.forEach(function(tab) {
+	chrome.tabs.query({}, function (tabs) {
+		tabs.forEach(function (tab) {
 			var isExcluded = isUrlExcluded(tab.url);
 			var enabled = globalEnabled && !isExcluded;
 			var pageSetting = getPageFromSettings(tab.url);
-			var badgeText = enabled ? formatLangCode(pageSetting.lang.code) : BADGE.OFF.TEXT;
+			var badgeText = enabled
+				? formatLangCode(pageSetting.lang.code)
+				: BADGE.OFF.TEXT;
 			chrome.action.setBadgeText({ text: badgeText, tabId: tab.id });
-			chrome.action.setBadgeBackgroundColor({ color: enabled ? BADGE.ON.COLOR : BADGE.OFF.COLOR, tabId: tab.id });
+			chrome.action.setBadgeBackgroundColor({
+				color: enabled ? BADGE.ON.COLOR : BADGE.OFF.COLOR,
+				tabId: tab.id,
+			});
 
 			// Send update to content script
 			var dateNames = generateValidDateNames(pageSetting.lang);
@@ -714,9 +728,8 @@ function getPageFromSettings(location) {
 		};
 	}
 
-	var i = 0;
-	for (; i < pageSettings.length; i++) {
-		var pageSetting = pageSettings[i];
+	for (let i = 0; i < pageSettings.length; i++) {
+		let pageSetting = pageSettings[i];
 
 		if (new URL(pageSetting.location).host === new URL(location).host) {
 			pageSetting.lang = populateLangByCode(pageSetting.lang.code);
@@ -733,6 +746,12 @@ function getPageFromSettings(location) {
 
 function updatePageFromSettings(location, newKeyValue) {
 	var pageFromSettings = getPageFromSettings(location);
+
+	// Ensure pageSettings is initialized
+	if (!pageSettings) {
+		pageSettings = [];
+	}
+
 	var indexOfSetting = pageSettings.indexOf(pageFromSettings);
 
 	var newSetting = {
@@ -766,9 +785,7 @@ function populateLangByCode(langCode) {
 	for (; i < LANGUAGES.length; i++) {
 		var obj = LANGUAGES[i];
 
-		if (
-			obj.code.toLowerCase() === langCode.substr(0, 2).toLowerCase()
-		) {
+		if (obj.code.toLowerCase() === langCode.substr(0, 2).toLowerCase()) {
 			return obj;
 		}
 	}
@@ -783,10 +800,7 @@ function setDefaultLang() {
 	for (; i < LANGUAGES.length; i++) {
 		var obj = LANGUAGES[i];
 
-		if (
-			browserUiLang.substr(0, 2).toLowerCase() ===
-			obj.code.toLowerCase()
-		) {
+		if (browserUiLang.substr(0, 2).toLowerCase() === obj.code.toLowerCase()) {
 			return obj;
 		}
 	}

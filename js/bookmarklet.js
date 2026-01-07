@@ -22,7 +22,7 @@
 var enabled;
 var lang;
 var sentenceBreakDash = "em"; // Default to em dash
-var ignoredClasses = ["monaco"]; // Default ignored classes for input/textarea elements
+var ignoredClasses = ["monaco", "[role=combobox]", "[name=q]"]; // Default ignored classes for input/textarea elements
 var validMonthNames = []; // Will be populated with localized month names
 var validDayNames = []; // Will be populated with localized day names
 
@@ -111,43 +111,27 @@ var measurementFeetInchesRegex = /(\d+)\s*'\s*(\d+)\s*"/g;
 var feetSymbolRegex = /(\d+)\s*'/g;
 var inchSymbolRegex = /(\d+)\s*"/g;
 
-var disabledTextareaTypes = ["search"];
-var disabledTextareaNames = ["q"];
+var DOT_CHAR_CODE = 46; // .
+var OPEN_BRACKET_CHAR_CODE = 91; // [
 
 var isTextField = function (elem) {
-	if (elem.isContentEditable) return true;
+	var type = elem.type;
+	if (!elem.isContentEditable && type !== "textarea" && type !== "text")
+		return false;
 
-	var tagName = elem.tagName;
-	if (tagName === "TEXTAREA") {
-		var inputType = elem.type.toLowerCase();
-		var inputName = elem.name.toLowerCase();
-		return (
-			!disabledTextareaTypes.includes(inputType) &&
-			!disabledTextareaNames.includes(inputName)
-		);
-	}
+	for (let i = 0; i < ignoredClasses.length; i++) {
+		let ignoredClass = ignoredClasses[i];
+		const charCode = ignoredClass.charCodeAt(0);
+		if (charCode !== DOT_CHAR_CODE && charCode !== OPEN_BRACKET_CHAR_CODE) {
+			ignoredClass = "." + ignoredClass;
+		}
 
-	if (tagName === "INPUT") {
-		var inputType = elem.type.toLowerCase();
-		return inputType === "text";
-	}
-
-	return false;
-};
-
-var hasIgnoredClass = function (elem) {
-	if (!elem || !elem.className) return false;
-
-	var classList = elem.className.split(" ");
-	for (var i = 0; i < classList.length; i++) {
-		const clx = classList[i];
-		for (let ignoredClass of ignoredClasses) {
-			if (clx.includes(ignoredClass)) {
-				return true;
-			}
+		if (elem.matches(ignoredClass)) {
+			return false;
 		}
 	}
-	return false;
+
+	return true;
 };
 
 var charsTillEndOfStr = function (activeElement) {
@@ -426,7 +410,6 @@ document.addEventListener(
 		enabled &&
 			!e.isComposing &&
 			isTextField(e.target) &&
-			!hasIgnoredClass(e.target) &&
 			processTextField(e.target);
 	},
 	true,
@@ -509,7 +492,7 @@ chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 var formatTypography = function () {
 	var activeElement = document.activeElement;
 
-	if (!isTextField(activeElement) || hasIgnoredClass(activeElement)) {
+	if (!isTextField(activeElement)) {
 		return;
 	}
 

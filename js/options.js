@@ -42,7 +42,11 @@ chrome.runtime.sendMessage({ action: "getConstants" }, function (response) {
 			renderExclusionList();
 
 			// Load ignored classes
-			ignoredClasses = data.ignoredClasses || ["monaco"];
+			ignoredClasses = data.ignoredClasses || [
+				"monaco",
+				"[role=combobox]",
+				"[name=q]",
+			];
 			renderIgnoredClassList();
 		},
 	);
@@ -153,25 +157,27 @@ function removeExclusion(index) {
 }
 
 // Add ignored class
-document.getElementById("addIgnoredClass").addEventListener("click", function () {
-	const input = document.getElementById("ignoredClassInput");
-	const value = input.value.trim();
+document
+	.getElementById("addIgnoredClass")
+	.addEventListener("click", function () {
+		const input = document.getElementById("ignoredClassInput");
+		const value = input.value.trim();
 
-	if (!value) {
-		return;
-	}
+		if (!value) {
+			return;
+		}
 
-	// Check if already exists
-	if (ignoredClasses.includes(value)) {
-		alert("This class is already in the ignored list.");
-		return;
-	}
+		// Check if already exists
+		if (ignoredClasses.includes(value)) {
+			alert("This class is already in the ignored list.");
+			return;
+		}
 
-	ignoredClasses.push(value);
-	input.value = "";
-	renderIgnoredClassList();
-	saveIgnoredClasses();
-});
+		ignoredClasses.push(value);
+		input.value = "";
+		renderIgnoredClassList();
+		saveIgnoredClasses();
+	});
 
 // Allow adding by pressing Enter
 document

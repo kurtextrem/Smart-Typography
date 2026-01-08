@@ -602,6 +602,12 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	}
 
 	// Handle content script initialization requests
+	if (!sender.tab) {
+		// This request doesn't come from a content script in a tab
+		cb({});
+		return true;
+	}
+
 	chrome.storage.sync.get(STORAGE_KEY, function (storage) {
 		var pageSettingsFromStorage = storage[STORAGE_KEY];
 

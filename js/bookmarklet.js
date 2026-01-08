@@ -114,23 +114,33 @@ var inchSymbolRegex = /(\d+)\s*"/g;
 var DOT_CHAR_CODE = 46; // .
 var OPEN_BRACKET_CHAR_CODE = 91; // [
 
+var isTextFieldCache = new WeakMap();
+
 var isTextField = function (elem) {
+	// Check cache first
+	if (isTextFieldCache.has(elem)) {
+		return isTextFieldCache.get(elem);
+	}
 	var type = elem.type;
-	if (!elem.isContentEditable && type !== "textarea" && type !== "text")
+	if (!elem.isContentEditable && type !== "textarea" && type !== "text") {
+		isTextFieldCache.set(elem, false);
 		return false;
+	}
 
 	for (let i = 0; i < ignoredClasses.length; i++) {
 		let ignoredClass = ignoredClasses[i];
 		const charCode = ignoredClass.charCodeAt(0);
 		if (charCode !== DOT_CHAR_CODE && charCode !== OPEN_BRACKET_CHAR_CODE) {
-			ignoredClass = "." + ignoredClass;
+			ignoredClass = '[class*="' + ignoredClass + '"]';
 		}
 
 		if (elem.matches(ignoredClass)) {
+			isTextFieldCache.set(elem, false);
 			return false;
 		}
 	}
 
+	isTextFieldCache.set(elem, true);
 	return true;
 };
 

@@ -739,16 +739,19 @@ function getPageFromSettings(location) {
 	}
 
 	for (let i = 0; i < pageSettings.length; i++) {
-		let pageSetting = pageSettings[i];
-
-		if (new URL(pageSetting.location).host === new URL(location).host) {
-			pageSetting.lang = populateLangByCode(pageSetting.lang.code);
-			return pageSetting;
+		const pageSetting = pageSettings[i];
+		try {
+			if (new URL(pageSetting.location).host === new URL(location).host) {
+				pageSetting.lang = populateLangByCode(pageSetting.lang.code);
+				return pageSetting;
+			}
+		} catch (e) {
+			// Skip invalid URLs and continue to next setting
 		}
 	}
 
 	return {
-		location: location,
+		location,
 		enabled: true,
 		lang: fallbackLang || populateLangByCode("en"),
 	};

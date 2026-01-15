@@ -440,21 +440,23 @@ chrome.runtime.onMessage.addListener(function (req, sender, cb) {
 	validDayNames = req.validDayNames || [];
 	// Cache regexps for quote replacements
 	primaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" + lang.replacePrimary[0] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(\\s|^|\\(|\\>|\\])(?<!=)(" +
+			lang.replacePrimary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" +
+		"(\\s|^|\\(|\\>|\\])(?<!=)(" +
 			lang.replaceSecondary[0] +
 			")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	primaryClosingRegex = new RegExp(
-		"(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(?<!=)(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryClosingRegex = new RegExp(
-		"(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(?<!=)(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	if (req.sentenceBreakDash) {
@@ -473,21 +475,23 @@ chrome.runtime.sendMessage({ question: "enabled" }, function (res) {
 	validDayNames = res.validDayNames || [];
 	// Cache regexps for quote replacements
 	primaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" + lang.replacePrimary[0] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(\\s|^|\\(|\\>|\\])(?<!=)(" +
+			lang.replacePrimary[0] +
+			")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryOpeningRegex = new RegExp(
-		"(\\s|^|\\(|\\>|\\])(" +
+		"(\\s|^|\\(|\\>|\\])(?<!=)(" +
 			lang.replaceSecondary[0] +
 			")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	primaryClosingRegex = new RegExp(
-		"(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(?<!=)(.)(" + lang.replacePrimary[1] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	secondaryClosingRegex = new RegExp(
-		"(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
+		"(?<!=)(.)(" + lang.replaceSecondary[1] + ")(?=[^>\\]]*(<|\\[|$))",
 		"g",
 	);
 	if (res.sentenceBreakDash) {

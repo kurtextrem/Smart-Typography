@@ -148,8 +148,9 @@ var charsTillEndOfStr = function (activeElement) {
 	return getValue(activeElement).length - getSelectionStart(activeElement);
 };
 
-var correctCaretPosition = function (activeElement, charsTillEndOfStr) {
-	var correctCaretPos = getValue(activeElement).length - charsTillEndOfStr;
+var correctCaretPosition = function (activeElement, charsTillEndOfStr, cachedTextLength) {
+	var textLength = cachedTextLength != null ? cachedTextLength : getValue(activeElement).length;
+	var correctCaretPos = textLength - charsTillEndOfStr;
 	setSelection(activeElement, correctCaretPos);
 	return correctCaretPos;
 };
@@ -158,12 +159,33 @@ var processTextField = function (activeElement) {
 	// Cache DOM values to reduce repeated queries
 	var textValue = getValue(activeElement);
 	var cursorPos = getSelectionStart(activeElement);
-	var charsTillEnd = textValue.length - cursorPos;
+	var textLength = textValue.length; // Cache textValue.length
+	var charsTillEnd = textLength - cursorPos;
+
+	// Check if cursor is positioned right before whitespace (potential deduping scenario)
+	var wasBeforeSpace = cursorPos < textLength &&
+		isWhitespace(textValue.charCodeAt(cursorPos));
 
 	var newValue = replaceTypewriterPunctuation(textValue, false, cursorPos);
 
 	setValue(activeElement, newValue);
-	correctCaretPosition(activeElement, charsTillEnd);
+
+	// If cursor was before space and text got shorter (deduping occurred),
+	// move cursor past any normalized whitespace
+	if (wasBeforeSpace && newValue.length < textLength) {
+		var newCursorPos = cursorPos;
+		var newValueLength = newValue.length; // Cache newValue.length
+		// Skip over any whitespace at the new cursor position
+		while (newCursorPos < newValueLength &&
+			   isWhitespace(newValue.charCodeAt(newCursorPos))) {
+			newCursorPos++;
+		}
+		setSelection(activeElement, newCursorPos);
+	} else {
+		// Pass cached length when text didn't change to avoid re-getting the value
+		var cachedLength = (newValue === textValue) ? textLength : null;
+		correctCaretPosition(activeElement, charsTillEnd, cachedLength);
+	}
 
 	return newValue;
 };

@@ -384,20 +384,14 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 
 var getValue = function (activeElement) {
 	if (activeElement.isContentEditable) {
-		return document.getSelection().anchorNode.textContent;
+		return activeElement.textContent;
 	}
 	return activeElement.value;
 };
 
 var setValue = function (activeElement, newValue) {
 	if (activeElement.isContentEditable) {
-		var sel = document.getSelection();
-
-		if (!isTextNode(sel.anchorNode)) {
-			return;
-		}
-
-		return (sel.anchorNode.textContent = newValue);
+		return (activeElement.textContent = newValue);
 	}
 	return (activeElement.value = newValue);
 };

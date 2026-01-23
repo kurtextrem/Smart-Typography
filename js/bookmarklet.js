@@ -384,20 +384,14 @@ var regex = function (g, trimTrailingSpaces, cursorPos) {
 
 var getValue = function (activeElement) {
 	if (activeElement.isContentEditable) {
-		return document.getSelection().anchorNode.textContent;
+		return activeElement.textContent;
 	}
 	return activeElement.value;
 };
 
 var setValue = function (activeElement, newValue) {
 	if (activeElement.isContentEditable) {
-		var sel = document.getSelection();
-
-		if (!isTextNode(sel.anchorNode)) {
-			return;
-		}
-
-		return (sel.anchorNode.textContent = newValue);
+		return (activeElement.textContent = newValue);
 	}
 	return (activeElement.value = newValue);
 };
@@ -414,17 +408,32 @@ var setSelection = function (activeElement, correctCaretPos) {
 		var range = document.createRange();
 		var sel = window.getSelection();
 
-		if (!isTextNode(sel.anchorNode)) {
-			var textNode = document.createTextNode("");
-			sel.anchorNode.insertBefore(textNode, sel.anchorNode.childNodes[0]);
-			range.setStart(textNode, 0);
-		} else {
-			range.setStart(sel.anchorNode, correctCaretPos);
+		// For contentEditable, we need to find the text node that contains our position
+		// Since setValue may have replaced the DOM structure, we need to walk the DOM
+		var walker = document.createTreeWalker(activeElement, NodeFilter.SHOW_TEXT, null, false);
+		var currentPos = 0;
+		var foundNode = null;
+		var foundOffset = 0;
+
+		while (walker.nextNode()) {
+			var node = walker.currentNode;
+			var nodeLength = node.textContent.length;
+
+			if (currentPos + nodeLength >= correctCaretPos) {
+				foundNode = node;
+				foundOffset = correctCaretPos - currentPos;
+				break;
+			}
+
+			currentPos += nodeLength;
 		}
 
-		range.collapse(true);
-		sel.removeAllRanges();
-		sel.addRange(range);
+		if (foundNode) {
+			range.setStart(foundNode, foundOffset);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+		}
 		return;
 	}
 
